@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Card, Divider } from "@heroui/react";
+import { Card, Divider } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Cell = { row: number; col: number } | null;
@@ -17,9 +17,30 @@ export default function SudokuGrid() {
   const [selectedCell, setSelectedCell] = useState<Cell>(null);
   const [loading, setLoading] = useState(true);
 
-  const onCellClick = (row: number, col: number) => {
-    setSelectedCell({ row, col });
-  };
+  // 📥 Загрузка новой сетки с PHP
+  async function loadGrid() {
+    try {
+      const res = await fetch("http://localhost:8000/new_game.php");
+      const data = await res.json();
+
+      if (data && data.puzzle) {
+        setGrid(data.puzzle);
+      } else {
+        console.error("Неверный ответ от сервера:", data);
+      }
+    } catch (err) {
+      console.error("Ошибка при загрузке сетки:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Загружаем при первом рендере
+  useEffect(() => {
+    loadGrid();
+  }, []);
+
+  const onCellClick = (row: number, col: number) => setSelectedCell({ row, col });
 
   const onNumberClick = (num: number) => {
     if (!selectedCell) return;
@@ -40,30 +61,11 @@ export default function SudokuGrid() {
       ? grid[selectedCell.row][selectedCell.col]
       : null;
 
-  // Загрузка сетки с API
-  async function loadGrid() {
-    try {
-      const res = await fetch("http://localhost/sudoku_api.php?action=load");
-      const data = await res.json();
-      if (data.grid) {
-        setGrid(data.grid);
-      }
-    } catch (err) {
-      console.error("Ошибка при загрузке сетки:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadGrid();
-  }, []);
-
-  if (loading) return <div>Загрузка сетки...</div>;
-
+  if (loading) return <div className="text-xl p-8">Загрузка судоку...</div>;
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-content2 p-4 sm:p-6">
+      {/* Sudoku grid */}
       <Card shadow="sm" className="p-1 sm:p-2 border-4 border-black w-max pointer-events-auto">
         <div className="grid grid-cols-9">
           {grid.map((rowArray, rowIndex) =>
@@ -105,7 +107,7 @@ export default function SudokuGrid() {
                     backgroundColor: bgColor,
                     transition: { type: "spring", stiffness: 300, damping: 25 },
                   }}
-                  className={`flex items-center justify-center w-[100px] h-[100px] text-5xl font-extrabold cursor-pointer select-none ${borderTop} ${borderLeft} ${borderRight} ${borderBottom}`}
+                  className={`flex items-center justify-center w-[50px] h-[50px] sm:w-[80px] sm:h-[80px] text-3xl sm:text-5xl font-extrabold cursor-pointer select-none ${borderTop} ${borderLeft} ${borderRight} ${borderBottom}`}
                 >
                   <AnimatePresence mode="popLayout">
                     {cellValue !== null && (
@@ -129,80 +131,37 @@ export default function SudokuGrid() {
 
       <Divider className="my-6 w-64" />
 
-      
-
-<Card
-  shadow="sm"
-  className="p-3 w-full flex flex-row justify-center gap-3 bg-transparent border-none"
->
-  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
-    const isActive =
-      selectedCell && grid[selectedCell.row][selectedCell.col] === num;
-
-    return (
-      <motion.div
-        key={num}
-        whileHover={{ scale: 1.1, boxShadow: "0px 0px 15px rgba(37, 99, 235, 0.4)" }}
-        whileTap={{ scale: 0.9 }}
-        transition={{ type: "spring", stiffness: 300, damping: 15 }}
+      {/* Панель чисел */}
+      <Card
+        shadow="sm"
+        className="p-3 flex flex-wrap justify-center gap-3 bg-transparent border-none"
       >
-        <Button
-          color={isActive ? "primary" : "default"}
-          variant={isActive ? "solid" : "flat"}
-          onPress={() => onNumberClick(num)}
-          className={`
-            relative
-            flex items-center justify-center
-            w-[100px] h-[100px]
-            text-5xl font-extrabold
-            cursor-pointer
-            transition-all duration-300
-            ${isActive ? "bg-primary-500 text-white" : "bg-white hover:bg-default-100"}
-            rounded-2xl border-2 border-black
-          `}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
+          const isActive =
+            selectedCell && grid[selectedCell.row][selectedCell.col] === num;
+          return (
+            <motion.button
+              key={num}
+              onClick={() => onNumberClick(num)}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className={`w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] text-2xl sm:text-3xl font-extrabold border-2 border-black rounded-2xl ${
+                isActive ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"
+              }`}
+            >
+              {num}
+            </motion.button>
+          );
+        })}
+        <motion.button
+          onClick={onRemoveClick}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] text-2xl sm:text-3xl font-extrabold border-2 border-black rounded-2xl bg-white hover:bg-red-100 text-red-600"
         >
-          {num}
-          {isActive && (
-            <motion.span
-              className="absolute inset-0 rounded-2xl bg-primary-400/30 blur-xl"
-              animate={{ opacity: [0.6, 0.1, 0.6] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-          )}
-        </Button>
-      </motion.div>
-    );
-  })}
-
-  {/* Кнопка удаления ✕ */}
-  <motion.div
-    whileHover={{ scale: 1.1, boxShadow: "0px 0px 15px rgba(239, 68, 68, 0.4)" }}
-    whileTap={{ scale: 0.9 }}
-    transition={{ type: "spring", stiffness: 300, damping: 15 }}
-  >
-    <Button
-      color="danger"
-      variant="flat"
-      onPress={onRemoveClick}
-      className={`
-        relative
-        flex items-center justify-center
-        w-[100px] h-[100px]
-        text-5xl font-extrabold
-        border-4 border-black
-        bg-white hover:bg-danger-100 text-red-600
-        rounded-2xl transition-all duration-300
-      `}
-    >
-      ✕
-      <motion.span
-        className="absolute inset-0 rounded-2xl bg-red-400/20 blur-xl"
-        animate={{ opacity: [0.4, 0.1, 0.4] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      />
-    </Button>
-  </motion.div>
-</Card>
+          ✕
+        </motion.button>
+      </Card>
     </div>
   );
 }
