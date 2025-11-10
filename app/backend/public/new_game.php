@@ -1,53 +1,64 @@
 <?php
-// sudoku/app/backend/public/new_game.php
+declare(strict_types=1);
 
-session_start(); // ⚠️ обязательно для хранения текущей игры
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET');
 
-// Путь к классу SudokuGenerator
-require_once __DIR__ . '/app/src/SudokuGenerator.php'; 
+session_start();
+
+require_once __DIR__ . '/app/src/SudokuGenerator.php';
 
 use SudokuApp\Backend\SudokuGenerator;
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *'); 
-header('Access-Control-Allow-Methods: GET');
+$allowed = ['easy', 'medium', 'hard'];
+$difficulty = $_GET['difficulty'] ?? 'medium';
+if (!in_array($difficulty, $allowed, true)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid difficulty']);
+    exit;
+}
 
 try {
-    // Получаем уровень сложности из GET-параметра (по умолчанию "medium")
-    $difficulty = $_GET['difficulty'] ?? 'medium';
-    
-    // Если игра уже есть в сессии, возвращаем её
-    if (isset($_SESSION['sudoku_grid'])) {
+    // simple caching per session
+    if (isset($_SESSION['sudoku_game']) && isset($_SESSION['sudoku_game']['difficulty']) && $_SESSION['sudoku_game']['difficulty'] === $difficulty) {
+        $cached = $_SESSION['sudoku_game'];
         echo json_encode([
             'success' => true,
             'difficulty' => $difficulty,
-            'puzzle' => $_SESSION['sudoku_grid'],
+            'puzzle' => $cached['puzzle'],
+            'solution' => $cached['solution'] ?? null,
             'fromCache' => true
         ]);
         exit;
     }
 
-    // Если нет сохранённой сетки, генерируем новую
     $generator = new SudokuGenerator();
-    
-    // Генерация новой загадки
+    // generateNewGame should return ['puzzle' => [...], 'solution' => [...]] or similar
     $gameData = $generator->generateNewGame($difficulty);
 
-    // Сохраняем в сессии для последующей загрузки
-    $_SESSION['sudoku_grid'] = $gameData['puzzle'];
+    if (!isset($gameData['puzzle']) || !is_array($gameData['puzzle'])) {
+        throw new Exception('Generator returned invalid data');
+    }
 
-    // Отправляем на фронтенд только загадку
+    $_SESSION['sudoku_game'] = [
+        'difficulty' => $difficulty,
+        'puzzle' => $gameData['puzzle'],
+        'solution' => $gameData['solution'] ?? null,
+        'created_at' => time()
+    ];
+
     echo json_encode([
         'success' => true,
         'difficulty' => $difficulty,
         'puzzle' => $gameData['puzzle'],
+        'solution' => $gameData['solution'] ?? null,
         'fromCache' => false
     ]);
-    
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Ошибка сервера: ' . $e->getMessage(),
-    ]);
+    // in prod do not leak $e->getMessage()
+    echo json_encode(['success' => false, 'message' => 'Server error while generating puzzle']);
+    // optionally log $e->getMessage() to file for debugging
+    error_log('new_game.php error: ' . $e->getMessage());
 }
