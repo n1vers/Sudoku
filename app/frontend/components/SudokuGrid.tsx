@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, Divider } from "@heroui/react";
+import { Card, Divider, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 type Cell = { row: number; col: number } | null;
 
@@ -26,6 +27,8 @@ export default function SudokuGrid() {
   const [selectedCell, setSelectedCell] = useState<Cell>(null);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Set<string>>(new Set());
+  const [isGameComplete, setIsGameComplete] = useState(false);
+  const router = useRouter();
 
   async function loadGrid(difficulty = "medium") {
     setLoading(true);
@@ -120,6 +123,7 @@ export default function SudokuGrid() {
 
     setGrid(newGrid);
     setErrors(newErrors);
+    checkGameComplete(newGrid, newErrors);
   };
 
   const onRemoveClick = () => {
@@ -137,12 +141,26 @@ export default function SudokuGrid() {
     setErrors(newErrors);
   };
 
+  const checkGameComplete = (gridToCheck: (number | null)[][], errorsToCheck: Set<string>) => {
+    // Проверяем, что нет пустых ячеек и нет ошибок
+    const isComplete = gridToCheck.every((row) => row.every((cell) => cell !== null));
+    const hasNoErrors = errorsToCheck.size === 0;
+
+    if (isComplete && hasNoErrors) {
+      setIsGameComplete(true);
+    }
+  };
+
   const selectedValue =
     selectedCell && grid[selectedCell.row][selectedCell.col] !== null
       ? grid[selectedCell.row][selectedCell.col]
       : null;
 
   if (loading) return <div className="text-xl p-8">Загрузка судоку...</div>;
+
+  const handleBackToMenu = () => {
+    router.push("/");
+  };
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-content2 p-4 sm:p-6">
@@ -259,6 +277,29 @@ export default function SudokuGrid() {
           ✕
         </motion.button>
       </Card>
+
+      {/* Модальное окно завершения игры */}
+      <Modal isOpen={isGameComplete} onClose={handleBackToMenu} isDismissable={false}>
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1 text-green-600 text-2xl">
+            🎉 Поздравляем!
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-lg text-center text-gray-700">
+              Вы успешно решили судоку! 🏆
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="success"
+              onPress={handleBackToMenu}
+              className="font-bold text-white"
+            >
+              Вернуться на главный экран
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
