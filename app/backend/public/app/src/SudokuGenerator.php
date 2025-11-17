@@ -151,17 +151,59 @@ class SudokuGenerator {
         // Установка количества подсказок в зависимости от сложности
         switch (strtolower($difficulty)) {
             case 'easy':
-                $cluesToKeep = 35; // Легкая: много подсказок
+                $cluesToKeep = 40; // Легкая: много подсказок (~45%)
                 break;
             case 'hard':
-                $cluesToKeep = 20; // Сложная: мало подсказок
+                // Для сложного - быстро удаляем без проверки уникальности (слишком долго)
+                $cluesToKeep = 32; // Сложная: мало подсказок (~35%)
                 break;
             case 'medium':
             default:
-                $cluesToKeep = 28; // Средняя
+                $cluesToKeep = 32; // Средняя
                 break;
         }
         
+        // Для hard используем быструю генерацию без проверки уникальности
+        if (strtolower($difficulty) === 'hard') {
+            return $this->createPuzzleFast($fullGrid, $cluesToKeep);
+        }
+        
         return $this->createPuzzle($fullGrid, $cluesToKeep);
+    }
+
+    /**
+     * Быстрое создание загадки без проверки уникальности (для hard difficulty).
+     */
+    private function createPuzzleFast(array $fullGrid, int $targetClues): array {
+        $puzzleGrid = $fullGrid;
+        $positions = [];
+        for ($r = 0; $r < 9; $r++) {
+            for ($c = 0; $c < 9; $c++) {
+                $positions[] = ['r' => $r, 'c' => $c];
+            }
+        }
+        
+        shuffle($positions);
+        $toRemove = 81 - $targetClues;
+        $removed = 0;
+        
+        foreach ($positions as $cell) {
+            if ($removed >= $toRemove) break;
+            $r = $cell['r'];
+            $c = $cell['c'];
+            if ($puzzleGrid[$r][$c] !== 0) {
+                $puzzleGrid[$r][$c] = 0;
+                $removed++;
+            }
+        }
+        
+        $finalPuzzle = array_map(function($row) {
+            return array_map(fn($cell) => $cell === 0 ? null : $cell, $row);
+        }, $puzzleGrid);
+        
+        return [
+            'puzzle' => $finalPuzzle,
+            'solution' => $fullGrid
+        ];
     }
 }
