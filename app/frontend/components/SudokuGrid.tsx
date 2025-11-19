@@ -34,7 +34,8 @@ export default function SudokuGrid() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const difficultyParam = searchParams.get("difficulty") || "medium";
-  const nickname = searchParams.get("nickname") || "Anonymous";
+  // Allow empty nickname so server can generate anonymousNNN when needed
+  const nickname = searchParams.get("nickname") ?? "";
 
   const difficultyLabel =
     difficultyParam === "easy" ? "Лёгкая" : difficultyParam === "medium" ? "Средняя" : "Сложная";
@@ -219,7 +220,8 @@ export default function SudokuGrid() {
   }, [isGameComplete, gameSaved, nickname, difficultyParam, elapsedTime, wasAutoFilled]);
 
   const onCellClick = (row: number, col: number) => {
-    if (fixed[row][col]) return; // Нельзя выбирать фиксированные ячейки
+    // Allow selecting fixed (prefilled) cells so they can be highlighted.
+    // Editing is still prevented elsewhere (disableInput uses `fixed`).
     setSelectedCell({ row, col });
   };
 
@@ -320,6 +322,16 @@ export default function SudokuGrid() {
     selectedCell && grid[selectedCell.row][selectedCell.col] !== null
       ? grid[selectedCell.row][selectedCell.col]
       : null;
+
+  // Count placed digits in the current grid so we can disable a digit
+  // button when that digit is already fully placed (9 occurrences).
+  const digitCounts = Array(10).fill(0);
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const v = grid[r][c];
+      if (v !== null && v >= 1 && v <= 9) digitCounts[v]++;
+    }
+  }
 
   if (loading) return <div className="text-xl p-8">Загрузка судоку...</div>;
 
@@ -452,21 +464,22 @@ export default function SudokuGrid() {
         className="p-3 flex flex-wrap justify-center gap-3 bg-transparent border-none"
       >
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
-          const isActive =
-            selectedCell && grid[selectedCell.row][selectedCell.col] === num;
-          const disableInput =
-            !selectedCell || fixed[selectedCell.row][selectedCell.col];
+          const isActive = selectedCell && grid[selectedCell.row][selectedCell.col] === num;
+          const disableInput = !selectedCell || fixed[selectedCell.row][selectedCell.col];
+          const isDigitComplete = digitCounts[num] >= 9;
+
+          const buttonDisabled = disableInput || isDigitComplete;
 
           return (
             <motion.button
               key={num}
               onClick={() => onNumberClick(num)}
-              whileHover={disableInput ? {} : { scale: 1.1 }}
-              whileTap={disableInput ? {} : { scale: 0.9 }}
-              disabled={disableInput}
+              whileHover={buttonDisabled ? {} : { scale: 1.1 }}
+              whileTap={buttonDisabled ? {} : { scale: 0.9 }}
+              disabled={buttonDisabled}
               className={`w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] text-2xl sm:text-3xl font-extrabold border-2 border-black rounded-2xl ${
                 isActive ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"
-              } ${disableInput ? "opacity-50 cursor-not-allowed hover:bg-white" : ""}`}
+              } ${buttonDisabled ? "opacity-50 cursor-not-allowed hover:bg-white" : ""}`}
             >
               {num}
             </motion.button>

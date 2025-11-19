@@ -61,8 +61,10 @@ export default function MenuPage() {
   const filteredResults = gameResults;
 
   const startGame = () => {
-    // Передаём сложность и ник в URL параметре
-    const encodedNickname = encodeURIComponent(nickname || "Anonymous");
+    // Передаём сложность и ник в URL параметре.
+    // Do not substitute a default here — if user left the field empty we want
+    // the server to create anonymousNNN identifiers.
+    const encodedNickname = encodeURIComponent(nickname);
     router.push(`/game?difficulty=${difficulty}&nickname=${encodedNickname}`);
   };
 
