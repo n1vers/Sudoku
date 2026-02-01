@@ -459,16 +459,11 @@ export default function SudokuGrid() {
 
       <Divider className="my-6 w-64" />
 
-      <Card
-        shadow="sm"
-        className="p-3 flex flex-wrap justify-center gap-3 bg-transparent border-none"
-      >
+      {/* Блок управления: Цифры и Удаление в одну строку */}
+      <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-4 w-full max-w-2xl">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
           const isActive = selectedCell && grid[selectedCell.row][selectedCell.col] === num;
-          const disableInput = !selectedCell || fixed[selectedCell.row][selectedCell.col];
-          const isDigitComplete = digitCounts[num] >= 9;
-
-          const buttonDisabled = disableInput || isDigitComplete;
+          const buttonDisabled = !selectedCell || fixed[selectedCell.row][selectedCell.col] || digitCounts[num] >= 9;
 
           return (
             <motion.button
@@ -477,35 +472,38 @@ export default function SudokuGrid() {
               whileHover={buttonDisabled ? {} : { scale: 1.1 }}
               whileTap={buttonDisabled ? {} : { scale: 0.9 }}
               disabled={buttonDisabled}
-              className={`w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] text-2xl sm:text-3xl font-extrabold border-2 border-black rounded-2xl ${
+              className={`w-10 h-12 sm:w-16 sm:h-20 text-xl sm:text-3xl font-extrabold border-2 border-black rounded-xl transition-colors ${
                 isActive ? "bg-blue-500 text-white" : "bg-white hover:bg-gray-100"
-              } ${buttonDisabled ? "opacity-50 cursor-not-allowed hover:bg-white" : ""}`}
+              } ${buttonDisabled ? "opacity-30 cursor-not-allowed" : "shadow-sm"}`}
             >
               {num}
             </motion.button>
           );
         })}
+
+        {/* Кнопка удаления (Ластик) в том же ряду */}
         <motion.button
           onClick={onRemoveClick}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          disabled={!selectedCell || (selectedCell && fixed[selectedCell.row][selectedCell.col])}
-          className="w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] text-2xl sm:text-3xl font-extrabold border-2 border-black rounded-2xl bg-white hover:bg-red-100 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!selectedCell || fixed[selectedCell.row][selectedCell.col]}
+          className="w-10 h-12 sm:w-16 sm:h-20 text-xl sm:text-3xl font-extrabold border-2 border-red-500 text-red-600 rounded-xl bg-white disabled:opacity-30"
         >
           ✕
         </motion.button>
-      </Card>
+      </div>
 
-      {/* Кнопка для автоматического заполнения */}
-      <div className="mt-6 flex justify-center gap-4 flex-wrap">
-        <motion.button
-          onClick={autoFillSolution}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-lg hover:shadow-lg transition-shadow"
+      {/* Кнопка "Заполнить всё" чуть ниже по центру */}
+      <div className="mt-8">
+        <Button 
+          color="success" 
+          size="lg"
+          className="font-bold text-white shadow-lg px-8" 
+          onPress={autoFillSolution}
         >
-          ⚡ Заполнить все
-        </motion.button>
+          ⚡ Заполнить всё
+        </Button>
+      </div>
 
         {/* Кнопка назад в меню (видна только после победы) */}
         <AnimatePresence>
@@ -525,127 +523,6 @@ export default function SudokuGrid() {
         </AnimatePresence>
       </div>
 
-      {/* Модальное окно завершения игры */}
-      <Modal isOpen={isGameComplete} onClose={handleBackToMenu} isDismissable={false} size="lg">
-        <ModalContent className="bg-gradient-to-br from-green-50 to-emerald-50">
-          {/* Анимированный фон с конфетти */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(30)].map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 1, y: -20, x: Math.random() * 300 - 150 }}
-                animate={{
-                  opacity: 0,
-                  y: 400,
-                  x: Math.random() * 200 - 100,
-                  rotate: Math.random() * 720,
-                }}
-                transition={{
-                  duration: 2.5 + Math.random() * 1,
-                  ease: "easeIn",
-                }}
-                className="absolute w-2 h-2 pointer-events-none"
-              >
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    backgroundColor: ["#FFD700", "#FF69B4", "#87CEEB", "#98FB98"][
-                      Math.floor(Math.random() * 4)
-                    ],
-                  }}
-                />
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Основное содержимое */}
-          <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 100, damping: 15 }}
-          >
-            <ModalHeader className="flex flex-col gap-1 text-center border-b-2 border-green-200">
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 10, 0] }}
-                transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }}
-                className="text-6xl inline-block"
-              >
-                🎉
-              </motion.div>
-              <motion.h1
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent"
-              >
-                Поздравляем!
-              </motion.h1>
-            </ModalHeader>
-
-            <ModalBody className="py-8 relative z-10">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-center space-y-4"
-              >
-                <p className="text-2xl font-bold text-gray-800">
-                  🏆 Вы успешно решили судоку!
-                </p>
-                <div className="bg-green-100 rounded-lg p-4 border-2 border-green-300">
-                  <p className="text-gray-700">
-                    Отличная работа! Вы продемонстрировали отличные навыки логического мышления.
-                  </p>
-                </div>
-                
-                {/* Показываем статистику игры */}
-                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 space-y-2">
-                  <div className="text-lg font-semibold text-gray-800">
-                    ⏱️ Время: {String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:{String(elapsedTime % 60).padStart(2, '0')}
-                  </div>
-                  <div className="text-lg font-semibold text-gray-800">
-                    📊 Уровень: {difficultyLabel}
-                  </div>
-                  {wasAutoFilled && (
-                    <div className="text-lg font-semibold text-blue-600 bg-blue-100 px-3 py-2 rounded">
-                      ✓ Заполнено автоматически
-                    </div>
-                  )}
-                  {gameSaved && (
-                    <div className="text-sm font-semibold text-green-600 bg-green-100 px-3 py-1 rounded">
-                      ✓ Результат сохранен в базу
-                    </div>
-                  )}
-                </div>
-                
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="text-5xl"
-                >
-                  ⭐
-                </motion.div>
-              </motion.div>
-            </ModalBody>
-
-            <ModalFooter className="flex flex-col gap-3 border-t-2 border-green-200">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="w-full"
-              >
-                <Button
-                  onPress={handleBackToMenu}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
-                >
-                  🚀 Вернуться на главный экран
-                </Button>
-              </motion.div>
-            </ModalFooter>
-          </motion.div>
-        </ModalContent>
-      </Modal>
-    </div>
+      
   );
 }
