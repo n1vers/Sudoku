@@ -1,8 +1,4 @@
 <?php
-/**
- * Get game results from database
- * GET /get_results.php?difficulty=easy|medium|hard&limit=10
- */
 
 declare(strict_types=1);
 
@@ -22,16 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
-    // Get parameters
     $difficulty = $_GET['difficulty'] ?? null;
     $limit = (int)($_GET['limit'] ?? 10);
     
-    // Validate limit
     if ($limit < 1 || $limit > 100) {
         $limit = 10;
     }
 
-    // Database setup
     $dbPath = dirname(__DIR__) . '/sudoku_games.db';
     
     if (!file_exists($dbPath)) {
@@ -43,7 +36,6 @@ try {
     $pdo = new PDO('sqlite:' . $dbPath);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Build query
     $query = "SELECT nickname, difficulty, time_seconds, was_auto_filled, created_at FROM game_results";
     $params = [];
 
@@ -52,13 +44,11 @@ try {
         $params[':difficulty'] = $difficulty;
     }
 
-    // Order by time ascending (fastest first)
     $query .= " ORDER BY time_seconds ASC LIMIT :limit";
     $params[':limit'] = $limit;
 
     $stmt = $pdo->prepare($query);
     
-    // Bind limit as integer
     foreach ($params as $key => $value) {
         if ($key === ':limit') {
             $stmt->bindValue($key, $value, PDO::PARAM_INT);
@@ -70,7 +60,6 @@ try {
     $stmt->execute();
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Format results for frontend
     $formattedResults = [];
     foreach ($results as $row) {
         $minutes = floor($row['time_seconds'] / 60);

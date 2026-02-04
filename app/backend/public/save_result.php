@@ -1,9 +1,4 @@
 <?php
-/**
- * Save game result endpoint
- * POST /save_result.php
- * Body: { nickname, difficulty, time, wasAutoFilled }
- */
 
 declare(strict_types=1);
 
@@ -24,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    // Parse JSON input
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!$input) {
@@ -33,17 +27,13 @@ try {
         exit;
     }
 
-    // Validate required fields
     $nickname = $input['nickname'] ?? '';
     $difficulty = $input['difficulty'] ?? null;
     $time = $input['time'] ?? null;
     $wasAutoFilled = $input['wasAutoFilled'] ?? false;
 
-    // Normalize nickname (allow empty; server will generate anonymous if needed)
     if (!is_string($nickname)) $nickname = '';
     $nickname = trim($nickname);
-
-    // We'll validate length after possibly generating an anonymous nickname below
 
     if (!in_array($difficulty, ['easy', 'medium', 'hard'], true)) {
         http_response_code(400);
@@ -57,10 +47,8 @@ try {
         exit;
     }
 
-    // Initialize database (in parent backend directory)
     $dbPath = dirname(__DIR__) . '/sudoku_games.db';
     
-    // Ensure database file can be created/accessed
     $dbDir = dirname($dbPath);
     if (!is_writable($dbDir)) {
         throw new Exception("Database directory is not writable: " . $dbDir . " (permissions: " . decoct(fileperms($dbDir)) . ")");
@@ -74,7 +62,6 @@ try {
     
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Create table if it doesn't exist (safety measure)
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS game_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,9 +73,7 @@ try {
         )
     ");
 
-        // We already initialized PDO and created the table above. Proceed to insert.
         try {
-            // Determine next id to allow generating an anonymous nickname when needed
             try {
                 $row = $pdo->query("SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM game_results")->fetch(PDO::FETCH_ASSOC);
                 $nextId = $row && isset($row['next_id']) ? (int)$row['next_id'] : time();
@@ -106,7 +91,6 @@ try {
                 exit;
             }
 
-            // Insert into SQLite
             $stmt = $pdo->prepare("INSERT INTO game_results (nickname, difficulty, time_seconds, was_auto_filled) VALUES (:nickname, :difficulty, :time, :wasAutoFilled)");
             $stmt->execute([
                 ':nickname' => $nickname,
@@ -117,7 +101,6 @@ try {
 
             $resultId = $pdo->lastInsertId();
         } catch (PDOException $e) {
-            // If SQLite write fails, fallback to file-based JSON storage
             try {
                 $jsonPath = dirname(__DIR__) . '/results.json';
                 if (!file_exists($jsonPath)) {
@@ -169,7 +152,6 @@ try {
 
                 $data[] = $record;
 
-                // Truncate and write
                 ftruncate($fp, 0);
                 rewind($fp);
                 fwrite($fp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

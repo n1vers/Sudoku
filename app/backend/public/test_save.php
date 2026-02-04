@@ -1,16 +1,10 @@
 <?php
-/**
- * Simple test endpoint to verify database operations
- * GET /test_save.php
- */
-
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
 try {
     $dbPath = dirname(__DIR__) . '/sudoku_games.db';
     
-    // Check directory and file
     $dbDir = dirname($dbPath);
     $result = [
         'backend_dir' => $dbDir,
@@ -19,13 +13,11 @@ try {
         'db_path' => $dbPath,
         'db_exists' => file_exists($dbPath),
     ];
-    
-    // Try to connect
+
     $pdo = new PDO('sqlite:' . $dbPath);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $result['connection'] = 'success';
-    
-    // Create table
+
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS game_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,8 +29,7 @@ try {
         )
     ");
     $result['table'] = 'created_or_exists';
-    
-    // Insert test record
+
     $stmt = $pdo->prepare("
         INSERT INTO game_results (nickname, difficulty, time_seconds, was_auto_filled)
         VALUES (:nickname, :difficulty, :time, :wasAutoFilled)
@@ -54,7 +45,6 @@ try {
     $result['insert'] = 'success';
     $result['last_id'] = $pdo->lastInsertId();
     
-    // Query records
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM game_results");
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $result['total_records'] = $row['count'];

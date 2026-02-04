@@ -20,7 +20,6 @@ if (!in_array($difficulty, $allowed, true)) {
 }
 
 try {
-    // simple caching per session
     if (isset($_SESSION['sudoku_game']) && isset($_SESSION['sudoku_game']['difficulty']) && $_SESSION['sudoku_game']['difficulty'] === $difficulty) {
         $cached = $_SESSION['sudoku_game'];
         echo json_encode([
@@ -34,7 +33,6 @@ try {
     }
 
     $generator = new SudokuGenerator();
-    // generateNewGame should return ['puzzle' => [...], 'solution' => [...]] or similar
     $gameData = $generator->generateNewGame($difficulty);
 
     if (!isset($gameData['puzzle']) || !is_array($gameData['puzzle'])) {
@@ -57,8 +55,6 @@ try {
     ]);
 } catch (Throwable $e) {
     http_response_code(500);
-    // in prod do not leak $e->getMessage()
     echo json_encode(['success' => false, 'message' => 'Server error while generating puzzle']);
-    // optionally log $e->getMessage() to file for debugging
     error_log('new_game.php error: ' . $e->getMessage());
 }

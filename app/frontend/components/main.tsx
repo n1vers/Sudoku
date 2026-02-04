@@ -30,7 +30,6 @@ export default function MenuPage() {
     if (saved) { setIsAuth(true); setNickname(saved); }
   }, []);
 
-  // Исправленная загрузка результатов
   useEffect(() => {
     if (!isAuth) return;
     const fetchResults = async () => {
@@ -38,7 +37,6 @@ export default function MenuPage() {
         setLoading(true);
         const res = await fetch(`${API_BASE}/get_results.php?difficulty=${difficulty}&limit=8`);
         const data = await res.json();
-        // Проверяем структуру данных
         if (data.results) setGameResults(data.results);
         else setGameResults([]);
       } catch (err) {
@@ -70,7 +68,6 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4 font-sans selection:bg-purple-500/30">
-      {/* Живой фон */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px]" />
@@ -105,7 +102,6 @@ export default function MenuPage() {
           ) : (
             <motion.div key="menu" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-8">
               
-              {/* Левая панель: Лидерборд */}
               <Card className="bg-white/5 backdrop-blur-lg border border-white/10 p-6 shadow-2xl overflow-hidden relative group">
                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -134,7 +130,6 @@ export default function MenuPage() {
                 </div>
               </Card>
 
-              {/* Правая панель: Старт */}
               <Card className="bg-white/5 backdrop-blur-lg border border-white/10 p-8 shadow-2xl relative">
                 <div className="absolute top-0 right-0 w-1 h-full bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
                 <div className="flex justify-between items-center mb-8">

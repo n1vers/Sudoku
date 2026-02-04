@@ -27,7 +27,7 @@ export default function AuthPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Если всё ок, идем в меню и передаем ник
+
         router.push(`/?nickname=${nickname}`);
       } else {
         alert(data.message);
