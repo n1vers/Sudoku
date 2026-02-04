@@ -34,7 +34,6 @@ export default function SudokuGrid() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const difficultyParam = searchParams.get("difficulty") || "medium";
-  // Allow empty nickname so server can generate anonymousNNN when needed
   const nickname = searchParams.get("nickname") ?? "";
 
   const difficultyLabel =
@@ -57,7 +56,6 @@ export default function SudokuGrid() {
       }
 
       if (data && data.puzzle) {
-        // Start from server puzzle, then adapt density based on difficulty
         const serverPuzzle: (number | null)[][] = data.puzzle.map((r: any) => [...r]);
         const fixedGrid = emptyBoolGrid();
         for (let r = 0; r < GRID_SIZE; r++) {
@@ -66,19 +64,14 @@ export default function SudokuGrid() {
           }
         }
 
-        // If server provided a solution, we'll use it to add/remove givens for easy/hard
         if (data.solution) {
           const sol: (number | null)[][] = data.solution.map((r: any) => [...r]);
-          // desired counts
           const total = GRID_SIZE * GRID_SIZE;
-          const desiredForEasy = Math.floor(total * 0.5); // ~50%
-          const desiredForHard = Math.floor(total * 0.4); // ~40%
+          const desiredForEasy = Math.floor(total * 0.5); 
+          const desiredForHard = Math.floor(total * 0.4); 
 
-          // current count of givens
           const countGivens = (gridToCheck: (number | null)[][]) =>
             gridToCheck.reduce((acc, row) => acc + row.filter((v) => v !== null).length, 0);
-
-          // copy
           const newGrid = serverPuzzle.map((r) => [...r]);
           const newFixed = fixedGrid.map((r) => [...r]);
 
@@ -90,14 +83,12 @@ export default function SudokuGrid() {
 
           if (target !== null) {
             if (target > currentPrefilled) {
-              // add givens from solution into empty cells
               const emptyPos: [number, number][] = [];
               for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                   if (newGrid[r][c] === null && sol[r][c] !== null) emptyPos.push([r, c]);
                 }
               }
-              // shuffle
               for (let i = emptyPos.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [emptyPos[i], emptyPos[j]] = [emptyPos[j], emptyPos[i]];
@@ -109,14 +100,12 @@ export default function SudokuGrid() {
                 newFixed[r][c] = true;
               }
             } else if (target < currentPrefilled) {
-              // remove some of the server givens
               const prefilledPos: [number, number][] = [];
               for (let r = 0; r < GRID_SIZE; r++) {
                 for (let c = 0; c < GRID_SIZE; c++) {
                   if (serverPuzzle[r][c] !== null) prefilledPos.push([r, c]);
                 }
               }
-              // shuffle
               for (let i = prefilledPos.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [prefilledPos[i], prefilledPos[j]] = [prefilledPos[j], prefilledPos[i]];
@@ -134,7 +123,6 @@ export default function SudokuGrid() {
           setFixed(newFixed);
           setSolution(sol);
 
-          // validate prefilled vs solution (should be consistent)
           const errs = new Set<string>();
           for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
@@ -144,7 +132,6 @@ export default function SudokuGrid() {
           }
           setErrors(errs);
         } else {
-          // no solution provided — use server puzzle as-is
           setGrid(serverPuzzle);
           setFixed(fixedGrid);
           setSolution(null);
@@ -166,7 +153,6 @@ export default function SudokuGrid() {
     loadGrid(difficultyParam);
   }, [difficultyParam]);
 
-  // Таймер
   useEffect(() => {
     if (loading || isGameComplete) return;
     
@@ -177,7 +163,6 @@ export default function SudokuGrid() {
     return () => clearInterval(interval);
   }, [loading, isGameComplete]);
 
-  // Сохранение результата при завершении игры
   useEffect(() => {
     if (!isGameComplete || gameSaved) return;
 
@@ -220,8 +205,6 @@ export default function SudokuGrid() {
   }, [isGameComplete, gameSaved, nickname, difficultyParam, elapsedTime, wasAutoFilled]);
 
   const onCellClick = (row: number, col: number) => {
-    // Allow selecting fixed (prefilled) cells so they can be highlighted.
-    // Editing is still prevented elsewhere (disableInput uses `fixed`).
     setSelectedCell({ row, col });
   };
 
@@ -288,7 +271,6 @@ export default function SudokuGrid() {
   };
 
   const checkGameComplete = (gridToCheck: (number | null)[][], errorsToCheck: Set<string>) => {
-    // Проверяем, что нет пустых ячеек и нет ошибок
     const isComplete = gridToCheck.every((row) => row.every((cell) => cell !== null));
     const hasNoErrors = errorsToCheck.size === 0;
 
@@ -303,7 +285,6 @@ export default function SudokuGrid() {
     const newGrid = grid.map((r) => [...r]);
     const newErrors = new Set<string>();
     
-    // Заполняем пустые ячейки решением
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
         if (newGrid[r][c] === null && solution[r][c] !== null) {
@@ -323,8 +304,6 @@ export default function SudokuGrid() {
       ? grid[selectedCell.row][selectedCell.col]
       : null;
 
-  // Count placed digits in the current grid so we can disable a digit
-  // button when that digit is already fully placed (9 occurrences).
   const digitCounts = Array(10).fill(0);
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
@@ -345,7 +324,6 @@ export default function SudokuGrid() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 p-4 sm:p-6">
-      {/* Header: difficulty badge + controls */}
       <div className="w-full max-w-5xl mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-bold text-gray-800">Уровень: </h3>
@@ -354,11 +332,9 @@ export default function SudokuGrid() {
             difficultyParam === "medium" ? "bg-yellow-100 text-yellow-700" :
             "bg-red-100 text-red-700"
           }`}>{difficultyLabel}</span>
-          {/* Таймер */}
           <div className="ml-4 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold font-mono">
             ⏱️ {String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:{String(elapsedTime % 60).padStart(2, '0')}
           </div>
-          {/* генерация локально, пометка удалена */}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -459,7 +435,6 @@ export default function SudokuGrid() {
 
       <Divider className="my-6 w-64" />
 
-      {/* Блок управления: Цифры и Удаление в одну строку */}
       <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-4 w-full max-w-2xl">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
           const isActive = selectedCell && grid[selectedCell.row][selectedCell.col] === num;
@@ -481,7 +456,6 @@ export default function SudokuGrid() {
           );
         })}
 
-        {/* Кнопка удаления (Ластик) в том же ряду */}
         <motion.button
           onClick={onRemoveClick}
           whileHover={{ scale: 1.1 }}
@@ -493,7 +467,6 @@ export default function SudokuGrid() {
         </motion.button>
       </div>
 
-      {/* Кнопка "Заполнить всё" чуть ниже по центру */}
       <div className="mt-8">
         <Button 
           color="success" 
@@ -505,7 +478,6 @@ export default function SudokuGrid() {
         </Button>
       </div>
 
-        {/* Кнопка назад в меню (видна только после победы) */}
         <AnimatePresence>
           {isGameComplete && (
             <motion.button

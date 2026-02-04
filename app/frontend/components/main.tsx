@@ -91,8 +91,8 @@ export default function MenuPage() {
                   <Tab key="register" title="РЕГИСТРАЦИЯ" />
                 </Tabs>
                 <div className="mt-6 space-y-4">
-                  <Input label="Никнейм" variant="bordered" className="text-white" value={nickname} onChange={(e) => setNickname(e.target.value)} />
-                  <Input label="Пароль" type="password" variant="bordered" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Input placeholder="Никнейм" variant="bordered" className="text-white" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+                  <Input placeholder="Пароль" type="password" variant="bordered" value={password} onChange={(e) => setPassword(e.target.value)} />
                   <Button size="lg" fullWidth className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20" isLoading={authLoading} onClick={handleAuth}>
                     ПОДТВЕРДИТЬ
                   </Button>
